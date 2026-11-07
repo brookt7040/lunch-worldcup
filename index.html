@@ -1,0 +1,598 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>School Lunch World Cup</title>
+<link rel="stylesheet" href="fonts/do-hyeon.css">
+<style>
+  @font-face { font-family: 'Nunito'; font-weight: 700; font-display: swap; src: url(fonts/nunito-latin-700-normal.woff2) format('woff2'); }
+  @font-face { font-family: 'Nunito'; font-weight: 800; font-display: swap; src: url(fonts/nunito-latin-800-normal.woff2) format('woff2'); }
+  :root {
+    --bg: #343f7c; --deep: #29326a; --card: #ffffff; --ink: #20264f; --muted: #5d6488; --line: #d9dcea; --on-bg: #d9ddf3;
+    --primary: #343f7c; --accent: #f08a4b; --accent-soft: #fde9dc;
+    --one: #2f9e77; --two: #e0662b; --rest: #566099;
+    --gold: #ffc400; --gold-soft: #fff0a6;
+  }
+  * { box-sizing: border-box; }
+  html, body { height: 100%; margin: 0; }
+  body {
+    background: var(--bg); color: #fff;
+    font-family: "Nunito", "Do Hyeon", "Apple SD Gothic Neo", "Malgun Gothic", "Noto Sans KR", system-ui, sans-serif;
+    font-weight: 800;
+    font-synthesis: none;
+  }
+  button { font: inherit; color: inherit; cursor: pointer; }
+  [hidden] { display: none !important; }
+  .screen { min-height: 100vh; }
+  .en { font-family: "Nunito", "Segoe UI", system-ui, sans-serif; font-weight: 800; }
+
+  .btn {
+    padding: 12px 22px; border: 2px solid var(--line); border-radius: 12px;
+    background: var(--card); color: var(--ink); font-weight: 700; font-size: 18px;
+  }
+  .btn:hover { border-color: var(--primary); }
+  .btn:focus-visible, .chip:focus-visible, .food:focus-visible, .opt:focus-visible { outline: 4px solid var(--accent); outline-offset: 2px; }
+  .btn.primary { background: var(--primary); border-color: var(--primary); color: #fff; }
+  .btn.big { font-size: 24px; padding: 16px 36px; }
+  .btn.small { font-size: 15px; padding: 7px 12px; border-radius: 9px; }
+  .btn:disabled { opacity: .45; cursor: not-allowed; }
+
+  /* 시작 화면 */
+  #setup { display: flex; align-items: center; justify-content: center; padding: 24px; }
+  .setup-box { width: min(760px, 100%); color: var(--ink); background: var(--card); border-radius: 22px; padding: 36px; box-shadow: 0 8px 28px rgba(32, 38, 79, .1); text-align: center; }
+  .setup-box h1 { margin: 0; font-size: 44px; }
+  .setup-box .tag { margin: 6px 0 26px; font-size: 21px; color: var(--muted); }
+  .setup-q { margin: 20px 0 8px; font-weight: 700; font-size: 20px; }
+  .opts { display: grid; grid-auto-flow: column; grid-auto-columns: minmax(0, 1fr); gap: 12px; }
+  .opt { padding: 16px 10px; border: 3px solid var(--line); border-radius: 14px; background: var(--card); color: var(--ink); font-size: 22px; font-weight: 700; }
+  .opt small { display: block; margin-top: 2px; font-size: 15px; font-weight: 500; color: var(--muted); }
+  .opt.on { border-color: var(--primary); background: #e8eaf5; }
+  .setup-go { margin-top: 26px; display: flex; gap: 12px; justify-content: center; flex-wrap: wrap; }
+
+  /* 인트로 */
+  #intro {
+    position: relative; overflow: hidden; display: flex; flex-direction: column; align-items: center; justify-content: center;
+    gap: 14px; padding: 24px; text-align: center; color: #fff; background: var(--primary);
+  }
+  #intro .bits { position: absolute; inset: 0; pointer-events: none; }
+  #intro .bit { position: absolute; top: -12vh; font-size: clamp(38px, 8vh, 74px); opacity: .5; animation: fall linear infinite; }
+  @keyframes fall { to { transform: translateY(125vh) rotate(300deg); } }
+  #intro > :not(.bits) { position: relative; }
+  #intro .badge { padding: 8px 22px; border-radius: 999px; background: var(--accent); font-size: clamp(20px, 3.6vh, 32px); }
+  #intro h1 { margin: 0; font-size: clamp(50px, 12vh, 118px); font-weight: 700; line-height: 1.15; animation: pop .6s ease-out both; }
+  #intro h1 span { display: block; }
+  #intro .sub { margin: 0 0 12px; font-size: clamp(24px, 4.6vh, 42px); }
+  @keyframes pop { from { transform: scale(.7); opacity: 0; } to { transform: scale(1); opacity: 1; } }
+  #introGo { border-color: #fff; color: var(--primary); }
+  #toResults, #newGame { background: var(--accent); border-color: var(--accent); color: #fff; }
+  #backGame { background: var(--card); }
+  .pod.first .rank { color: var(--ink); }
+  @media (prefers-reduced-motion: reduce) { #intro .bit, #intro h1 { animation: none; } #intro .bit { top: auto; } }
+
+  /* 경기 화면 */
+  #match { height: 100vh; min-height: 560px; display: grid; grid-template-rows: auto minmax(0, 1fr) auto; }
+  .top { display: grid; grid-template-columns: 1fr auto 1fr; align-items: center; gap: 12px; padding: 12px 22px 4px; }
+  .round { justify-self: start; padding: 7px 16px; border-radius: 999px; background: var(--accent); color: #fff; font-weight: 700; font-size: clamp(16px, 2.2vh, 22px); }
+  .prompt { margin: 0; font-size: clamp(32px, 6.2vh, 62px); font-weight: 700; letter-spacing: -.5px; white-space: nowrap; }
+  .tools { justify-self: end; display: flex; gap: 8px; }
+
+  .arena { display: grid; grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr); align-items: stretch; gap: 14px; padding: 8px 22px; min-height: 0; }
+  .food {
+    display: flex; flex-direction: column; min-height: 0; padding: 0; overflow: hidden;
+    border: 5px solid transparent; border-radius: 22px; background: var(--card); color: var(--ink);
+    box-shadow: 0 6px 18px rgba(0, 0, 0, .22); transition: transform .15s, opacity .2s, border-color .15s;
+  }
+  .food:hover:not(:disabled) { border-color: var(--accent); }
+  .food .pic { flex: 1; min-height: 0; display: flex; align-items: center; justify-content: center; background: var(--accent-soft); overflow: hidden; }
+  .food .pic img { width: 100%; height: 100%; object-fit: cover; display: block; }
+  .food .emoji { font-size: clamp(90px, 30vh, 300px); line-height: 1; }
+  .food .names { padding: 8px 10px 10px; }
+  .food .name-en { display: block; font-size: clamp(26px, 5vh, 48px); font-weight: 700; line-height: 1.15; }
+  .food .name-ko { display: block; font-size: clamp(17px, 2.8vh, 26px); color: var(--muted); font-weight: 600; }
+  .food.win { border-color: var(--accent); transform: scale(1.02); }
+  .food.lose { opacity: .25; }
+  .vs { align-self: center; font-size: clamp(26px, 5vh, 46px); font-weight: 700; color: var(--accent); }
+
+  .saybar { text-align: center; font-size: clamp(18px, 3vh, 28px); font-weight: 700; padding: 2px 10px 8px; min-height: 1.6em; }
+  .saybar .hint { color: var(--on-bg); font-weight: 700; }
+
+  .score-area { background: var(--deep); padding: 8px 22px 12px; }
+  .score-head { display: flex; flex-wrap: wrap; gap: 4px 20px; justify-content: center; font-size: clamp(14px, 2vh, 18px); color: var(--on-bg); margin-bottom: 7px; }
+  .score-head b { color: #fff; }
+  .score-head i { font-style: normal; padding: 0 6px; border-radius: 5px; color: var(--ink); }
+  .chips { display: grid; grid-auto-flow: column; grid-auto-columns: minmax(0, 1fr); gap: 7px; }
+  .chip {
+    position: relative; min-height: clamp(50px, 8.6vh, 78px); padding: 2px; border: 3px solid var(--line); border-radius: 12px;
+    background: var(--card); color: var(--ink); font-weight: 700; display: flex; flex-direction: column; align-items: center; justify-content: center; line-height: 1.1;
+  }
+  .chip .no { font-size: clamp(21px, 3.8vh, 34px); }
+  .chip .pts { font-size: clamp(12px, 1.8vh, 16px); font-weight: 600; color: var(--muted); }
+  .chip.rank1 { background: var(--gold); border-color: var(--gold); }
+  .chip.rank2 { background: var(--gold-soft); border-color: var(--gold-soft); }
+  .chip.rank1 .pts, .chip.rank2 .pts { color: var(--ink); }
+  .chip.one { background: var(--one); border-color: var(--one); color: #fff; }
+  .chip.two { background: var(--two); border-color: var(--two); color: #fff; }
+  .chip.one .pts, .chip.two .pts { color: #fff; }
+  .chip.rest { background: var(--rest); border-color: var(--rest); color: var(--on-bg); cursor: not-allowed; }
+  .chip.rest .pts { color: var(--on-bg); }
+  .chip.rest.rank1 { border-color: var(--gold); }
+  .chip.rest.rank2 { border-color: var(--gold-soft); }
+
+  /* 우승 메뉴 */
+  #champion { display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 10px; padding: 20px; text-align: center; }
+  #champion .label { margin: 0; font-size: clamp(26px, 5vh, 44px); font-weight: 700; color: var(--accent); }
+  #champion .big { font-size: clamp(120px, 38vh, 340px); line-height: 1.05; }
+  #champion .pic { width: min(70vw, 620px); height: 48vh; border-radius: 22px; overflow: hidden; }
+  #champion .pic img { width: 100%; height: 100%; object-fit: cover; display: block; }
+  #champion h2 { margin: 0; font-size: clamp(40px, 8vh, 76px); }
+  #champion .ko { margin: 0 0 14px; font-size: clamp(20px, 3.6vh, 32px); color: var(--on-bg); font-weight: 700; }
+
+  /* 점수 결과 */
+  #results { padding: 22px; max-width: 1040px; margin: 0 auto; }
+  #results h1 { margin: 0; font-size: 38px; text-align: center; }
+  .res-sub { text-align: center; color: var(--on-bg); font-size: 19px; margin: 4px 0 16px; }
+  .podium { display: grid; grid-template-columns: 1fr 1.2fr 1fr; gap: 12px; align-items: end; margin-bottom: 18px; }
+  .pod { color: var(--ink); background: var(--card); border-radius: 16px; padding: 14px 8px; text-align: center; box-shadow: 0 4px 14px rgba(32, 38, 79, .08); }
+  .pod.first { background: var(--gold); padding: 22px 8px; }
+  .pod .rank { font-size: 20px; font-weight: 700; color: var(--muted); }
+  .pod .who { font-size: 34px; font-weight: 700; margin: 3px 0; }
+  .pod.first .who { font-size: 46px; }
+  .pod .val { font-size: 18px; font-weight: 700; }
+  .most { color: var(--ink); text-align: center; font-size: 21px; font-weight: 700; background: var(--card); border-radius: 12px; padding: 11px; margin-bottom: 14px; }
+  table { width: 100%; border-collapse: collapse; color: var(--ink); background: var(--card); border-radius: 12px; overflow: hidden; font-size: 19px; }
+  th, td { padding: 8px 10px; text-align: center; border-bottom: 1px solid var(--line); }
+  th { background: var(--deep); color: #fff; font-size: 17px; }
+  tr.rank1 td { background: var(--gold); }
+  tr.rank2 td { background: var(--gold-soft); }
+  tr.zero td { color: var(--muted); }
+  .res-go { display: flex; justify-content: center; gap: 12px; margin: 18px 0; flex-wrap: wrap; }
+</style>
+</head>
+<body>
+
+<section class="screen" id="setup">
+  <div class="setup-box">
+    <h1 class="en">🍱 School Lunch World Cup</h1>
+    <p class="tag">급식 메뉴 월드컵</p>
+    <p class="setup-q">어떻게 할까요?</p>
+    <div class="opts" id="classOpts">
+      <button type="button" class="opt" data-v="odd">홀수번호반<small>1, 3, 5 … 25번</small></button>
+      <button type="button" class="opt" data-v="even">짝수번호반<small>2, 4, 6 … 24번</small></button>
+      <button type="button" class="opt" data-v="none">번호 없이<small>다 함께 협동 수업</small></button>
+    </div>
+    <p class="setup-q">몇 강으로 할까요?</p>
+    <div class="opts" id="sizeOpts">
+      <button type="button" class="opt" data-v="16">16강<small>15판</small></button>
+      <button type="button" class="opt" data-v="32">32강<small>31판</small></button>
+    </div>
+    <div class="setup-go">
+      <button type="button" class="btn big" id="resumeBtn" hidden>이어서 하기</button>
+      <button type="button" class="btn primary big" id="startBtn" disabled>시작하기 ▶</button>
+    </div>
+  </div>
+</section>
+
+<section class="screen" id="intro" hidden>
+  <div class="bits" id="bits" aria-hidden="true"></div>
+  <div class="badge" id="introBadge"></div>
+  <h1 class="en"><span>Our School Lunch</span><span>World Cup!</span></h1>
+  <p class="sub">우리의 급식 메뉴 월드컵</p>
+  <button type="button" class="btn big" id="introGo">게임 시작 ▶</button>
+</section>
+
+<section class="screen" id="match" hidden>
+  <header class="top">
+    <div class="round" id="roundLabel"></div>
+    <h1 class="prompt en">Which do you like more?</h1>
+    <div class="tools">
+      <button type="button" class="btn small" id="undoBtn">↩ 되돌리기</button>
+      <button type="button" class="btn small" id="endBtn">결과 보기</button>
+    </div>
+  </header>
+  <div>
+    <div class="arena" style="height:calc(100% - 3.2em)">
+      <button type="button" class="food" id="foodA"></button>
+      <div class="vs en">VS</div>
+      <button type="button" class="food" id="foodB"></button>
+    </div>
+    <div class="saybar en" id="saybar"></div>
+  </div>
+  <div class="score-area">
+    <div class="score-head">
+      <span><b>1번 누르기</b> 1점</span>
+      <span><b>2번 누르기</b> 이유까지 2점</span>
+      <span><b>3번 누르기</b> 취소</span>
+      <span>회색 번호는 쉬는 중 (남은 판 수)</span>
+      <span><i style="background:var(--gold)">노랑</i> 1등 <i style="background:var(--gold-soft)">연노랑</i> 2등</span>
+    </div>
+    <div class="chips" id="chips"></div>
+  </div>
+</section>
+
+<section class="screen" id="champion" hidden>
+  <p class="label en">Our No. 1 lunch is…</p>
+  <div id="champPic"></div>
+  <h2 class="en" id="champName"></h2>
+  <p class="ko" id="champKo"></p>
+  <button type="button" class="btn" id="toResults">점수 결과 보기 ▶</button>
+</section>
+
+<section class="screen" id="results" hidden>
+  <h1>🏆 오늘의 점수</h1>
+  <p class="res-sub" id="resSub"></p>
+  <div class="podium" id="podium"></div>
+  <div class="most" id="most"></div>
+  <table>
+    <thead><tr><th>순위</th><th>번호</th><th>총점</th><th>대답 횟수</th><th>이유까지 말한 횟수</th></tr></thead>
+    <tbody id="scoreRows"></tbody>
+  </table>
+  <div class="res-go">
+    <button type="button" class="btn big" id="backGame" hidden>◀ 게임으로 돌아가기</button>
+    <button type="button" class="btn primary big" id="newGame">새 게임</button>
+  </div>
+</section>
+
+<script>
+/*
+ * 메뉴 32개. img에 사진(파일 경로 또는 data: 주소)을 넣으면 이모지 대신 사진이 나온다.
+ * school: 학교 급식표에 나온 메뉴인지 표시.
+ */
+const FOODS = [
+  { en: 'jeyuk-bokkeum', ko: '제육볶음', emoji: '🥘', school: true },
+  { en: 'sweet and sour pork', ko: '탕수육', emoji: '🍖', school: true },
+  { en: 'pork cutlet', ko: '돈가스', emoji: '🍛', school: true },
+  { en: 'grilled pork ribs', ko: '돼지갈비구이', emoji: '🍖', school: true },
+  { en: 'jjimdak', ko: '찜닭', emoji: '🍗', school: true },
+  { en: 'dakgalbi', ko: '닭갈비', emoji: '🍳', school: true },
+  { en: 'samgyeopsal', ko: '삼겹살구이', emoji: '🥓', school: true },
+  { en: 'bulgogi', ko: '불고기', emoji: '🥩', school: true },
+  { en: 'hot wings', ko: '핫윙', emoji: '🌶️', school: true },
+  { en: 'pa-dak', ko: '파닭', emoji: '🍗', school: true },
+  { en: 'jajangmyeon', ko: '자장면', emoji: '🍜', school: true },
+  { en: 'jjamppong', ko: '짬뽕', emoji: '🍲', school: true },
+  { en: 'malatang', ko: '마라탕', emoji: '🥵', school: true },
+  { en: 'rosé pasta', ko: '로제스파게티', emoji: '🍝', school: true },
+  { en: 'rice noodles', ko: '쌀국수', emoji: '🍜', school: true },
+  { en: 'jjolmyeon', ko: '쫄면', emoji: '🍜', school: true },
+  { en: 'kimchi fried rice', ko: '김치볶음밥', emoji: '🍚', school: true },
+  { en: 'curry rice', ko: '카레라이스', emoji: '🍛', school: true },
+  { en: 'bibimbap', ko: '비빔밥', emoji: '🥗', school: true },
+  { en: 'cheese tteokbokki', ko: '치즈떡볶이', emoji: '🧀', school: true },
+  { en: 'rice cake skewers', ko: '떡꼬치', emoji: '🍡', school: true },
+  { en: 'fried dumplings', ko: '군만두', emoji: '🥟', school: true },
+  { en: 'guobaorou', ko: '꿔바로우', emoji: '🍤', school: true },
+  { en: 'mala xiangguo', ko: '마라샹궈', emoji: '🔥', school: true },
+  { en: 'gambas', ko: '감바스', emoji: '🍤', school: true },
+  { en: 'ice cream', ko: '아이스크림', emoji: '🍨', school: true },
+  { en: 'pizza', ko: '피자', emoji: '🍕', school: false },
+  { en: 'hamburger', ko: '햄버거', emoji: '🍔', school: false },
+  { en: 'fried chicken', ko: '프라이드치킨', emoji: '🍗', school: false },
+  { en: 'ramyeon', ko: '라면', emoji: '🍜', school: false },
+  { en: 'sushi', ko: '초밥', emoji: '🍣', school: false },
+  { en: 'tanghulu', ko: '탕후루', emoji: '🍓', school: false },
+];
+
+const STORE_KEY = 'lunch_worldcup_v3';
+const REST_ROUNDS = 2; // 점수를 받으면 쉬는 판 수
+const MAX_NO = 25;
+const SHOW_MS = 1300; // 고른 뒤 "I like ~ more!"를 보여 주는 시간
+
+const $ = s => document.querySelector(s);
+const $$ = s => [...document.querySelectorAll(s)];
+const esc = s => String(s).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+
+function shuffle(list) {
+  const a = [...list];
+  for (let i = a.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [a[i], a[j]] = [a[j], a[i]];
+  }
+  return a;
+}
+
+const setup = { cls: null, size: null };
+let S = null;        // 진행 중인 게임
+let history = [];    // 되돌리기용 이전 상태
+let busy = false;    // 고른 뒤 다음 판으로 넘어가는 중
+
+function newGame() {
+  const numbers = [];
+  if (setup.cls !== 'none') for (let n = setup.cls === 'odd' ? 1 : 2; n <= MAX_NO; n += 2) numbers.push(n);
+  const all = shuffle(FOODS.map((_, i) => i));
+  return {
+    cls: setup.cls, size: Number(setup.size), numbers,
+    current: all.slice(0, Number(setup.size)), // 이번 라운드 후보 (둘씩 대결)
+    index: 0,            // 이번 라운드의 몇 번째 판인지 (0부터)
+    winners: [],         // 다음 라운드로 올라간 후보
+    picks: {},           // 이번 판 점수 { 번호: 점수 }
+    resting: {},         // 쉬는 번호와 남은 판 수 { 번호: 남은 판 }
+    log: [],             // 지난 판 점수 [{ no, pts }]
+    champion: null,
+  };
+}
+
+/* 효과음: 파일 없이 브라우저에서 바로 만든다 */
+let audioCtx = null;
+function pickSound() {
+  try {
+    audioCtx = audioCtx || new (window.AudioContext || window.webkitAudioContext)();
+    audioCtx.resume();
+    const t0 = audioCtx.currentTime;
+    [[660, 0], [880, .09], [1320, .18]].forEach(([freq, at]) => {
+      const osc = audioCtx.createOscillator(), gain = audioCtx.createGain();
+      osc.type = 'triangle';
+      osc.frequency.value = freq;
+      gain.gain.setValueAtTime(.0001, t0 + at);
+      gain.gain.exponentialRampToValueAtTime(.3, t0 + at + .015);
+      gain.gain.exponentialRampToValueAtTime(.0001, t0 + at + .26);
+      osc.connect(gain).connect(audioCtx.destination);
+      osc.start(t0 + at);
+      osc.stop(t0 + at + .28);
+    });
+  } catch (e) { /* 소리가 안 나도 게임은 진행 */ }
+}
+
+/* 첫 판 음성: 크롬의 영어 음성으로 읽는다 */
+function sayPrompt() {
+  if (!window.speechSynthesis) return;
+  const u = new SpeechSynthesisUtterance('Which do you like more?!');
+  u.lang = 'en-US';
+  u.rate = .95;
+  const voices = speechSynthesis.getVoices().filter(v => /^en[-_]US/i.test(v.lang));
+  const voice = voices.find(v => /google/i.test(v.name)) || voices[0];
+  if (voice) u.voice = voice;
+  speechSynthesis.cancel();
+  speechSynthesis.speak(u);
+}
+if (window.speechSynthesis) speechSynthesis.getVoices(); // 음성 목록 미리 불러오기
+
+const className = () => ({ odd: '홀수번호반', even: '짝수번호반', none: '다 함께' }[S.cls]);
+
+function renderIntro() {
+  $('#introBadge').textContent = `${S.size}강 · ${className()}`;
+  const emojis = shuffle([...new Set(FOODS.map(f => f.emoji))]);
+  $('#bits').innerHTML = emojis.map((e, i) => `<span class="bit" style="left:${(i + .3) / emojis.length * 100}%;
+    animation-duration:${6 + i % 5}s;animation-delay:-${(i * 1.7) % 9}s">${e}</span>`).join('');
+  show('intro');
+}
+$('#introGo').addEventListener('click', () => {
+  renderMatch();
+  sayPrompt();
+});
+
+function save() {
+  try { localStorage.setItem(STORE_KEY, JSON.stringify(S)); } catch (e) { /* 저장 못 해도 진행 */ }
+}
+function load() {
+  try {
+    const v = JSON.parse(localStorage.getItem(STORE_KEY));
+    return v && Array.isArray(v.current) && Array.isArray(v.numbers) ? v : null;
+  } catch (e) { return null; }
+}
+function clearSave() {
+  try { localStorage.removeItem(STORE_KEY); } catch (e) { /* 무시 */ }
+}
+const snapshot = () => JSON.stringify(S);
+
+function show(id) {
+  ['setup', 'intro', 'match', 'champion', 'results'].forEach(x => { $('#' + x).hidden = x !== id; });
+  window.scrollTo(0, 0);
+}
+
+function roundName(n) {
+  return n === 2 ? '결승' : n === 4 ? '4강' : `${n}강`;
+}
+
+function picHtml(f) {
+  return f.img
+    ? `<img src="${esc(f.img)}" alt="${esc(f.ko)}">`
+    : `<span class="emoji" aria-hidden="true">${f.emoji}</span>`;
+}
+
+function renderFood(el, f) {
+  el.className = 'food';
+  el.disabled = false;
+  el.setAttribute('aria-label', `${f.en}, ${f.ko}`);
+  el.innerHTML = `<span class="pic">${picHtml(f)}</span>
+    <span class="names"><span class="name-en en">${esc(f.en)}</span><span class="name-ko">${esc(f.ko)}</span></span>`;
+}
+
+function totals() {
+  const t = new Map(S.numbers.map(n => [n, { no: n, score: 0, answers: 0, reasons: 0 }]));
+  S.log.forEach(x => {
+    const r = t.get(x.no);
+    r.score += x.pts;
+    r.answers += 1;
+    if (x.pts === 2) r.reasons += 1;
+  });
+  return t;
+}
+
+/** 번호별 등수 표시: 1등 rank1, 2등 rank2 (동점이면 같이 칠함, 0점은 제외) */
+function rankClass(t) {
+  const scores = [...new Set([...t.values()].map(r => r.score).filter(v => v > 0))].sort((a, b) => b - a);
+  return score => (score > 0 && score === scores[0] ? 'rank1' : score > 0 && score === scores[1] ? 'rank2' : '');
+}
+
+function renderChips() {
+  const t = totals();
+  const rankOf = rankClass(t);
+  const box = $('#chips');
+  box.innerHTML = S.numbers.map(n => {
+    const picked = S.picks[n] || 0;
+    const rest = (S.resting[n] || 0) > 0;
+    const now = t.get(n).score + picked;
+    const rank = rankOf(t.get(n).score);
+    const cls = `${rank} ${rest ? 'rest' : picked === 1 ? 'one' : picked === 2 ? 'two' : ''}`;
+    const note = rest ? `쉼 ${S.resting[n]}` : picked ? `+${picked}점` : `${now}점`;
+    return `<button type="button" class="chip ${cls}" data-no="${n}" aria-disabled="${rest}">
+      <span class="no">${n}</span><span class="pts">${note}</span></button>`;
+  }).join('');
+}
+
+function renderMatch() {
+  const n = S.current.length;
+  $('#roundLabel').textContent = n === 2 ? '결승' : `${roundName(n)} ${S.index + 1}/${n / 2}`;
+  renderFood($('#foodA'), FOODS[S.current[S.index * 2]]);
+  renderFood($('#foodB'), FOODS[S.current[S.index * 2 + 1]]);
+  $('#saybar').innerHTML = '<span class="hint">I like ___ more because it\'s ___.</span>';
+  $('#undoBtn').disabled = history.length === 0;
+  const hasNumbers = S.numbers.length > 0;
+  $('.score-area').hidden = !hasNumbers;
+  $('#endBtn').hidden = !hasNumbers;
+  renderChips();
+  show('match');
+}
+
+/** 번호 칸: 1점 → 2점 → 취소. 한 판에 여러 번호가 점수를 받을 수 있음 */
+$('#chips').addEventListener('click', e => {
+  const b = e.target.closest('.chip');
+  if (!b || busy) return;
+  const no = Number(b.dataset.no);
+  if (S.resting[no] > 0) return;
+  history.push(snapshot());
+  const pts = S.picks[no] || 0;
+  if (pts === 2) delete S.picks[no];
+  else S.picks[no] = pts + 1;
+  $('#undoBtn').disabled = false;
+  save();
+  renderChips();
+});
+
+function choose(side) {
+  if (busy) return;
+  busy = true;
+  pickSound();
+  history.push(snapshot());
+  const pos = S.index * 2 + side;
+  const food = FOODS[S.current[pos]];
+  const [win, lose] = side === 0 ? [$('#foodA'), $('#foodB')] : [$('#foodB'), $('#foodA')];
+  win.classList.add('win');
+  lose.classList.add('lose');
+  win.disabled = lose.disabled = true;
+  $('#saybar').textContent = `I like ${food.en} more!`;
+
+  S.winners.push(S.current[pos]);
+  const scorers = Object.entries(S.picks).map(([no, pts]) => ({ no: Number(no), pts }));
+  S.log.push(...scorers);
+  // 쉬던 번호는 한 판 줄이고, 이번에 점수를 받은 번호는 새로 쉬기 시작
+  Object.keys(S.resting).forEach(no => { if (--S.resting[no] <= 0) delete S.resting[no]; });
+  scorers.forEach(x => { S.resting[x.no] = REST_ROUNDS; });
+  S.picks = {};
+  S.index += 1;
+  if (S.index * 2 >= S.current.length) {
+    if (S.winners.length === 1) S.champion = S.winners[0];
+    else { S.current = shuffle(S.winners); S.winners = []; S.index = 0; }
+  }
+  save();
+  setTimeout(() => {
+    busy = false;
+    if (S.champion !== null) renderChampion();
+    else renderMatch();
+  }, SHOW_MS);
+}
+$('#foodA').addEventListener('click', () => choose(0));
+$('#foodB').addEventListener('click', () => choose(1));
+
+$('#undoBtn').addEventListener('click', () => {
+  if (busy || !history.length) return;
+  S = JSON.parse(history.pop());
+  save();
+  renderMatch();
+});
+
+function renderChampion() {
+  const f = FOODS[S.champion];
+  $('#champPic').className = f.img ? 'pic' : 'big';
+  $('#champPic').innerHTML = picHtml(f);
+  $('#champName').textContent = f.en;
+  $('#champKo').textContent = f.ko;
+  $('#toResults').textContent = S.numbers.length ? '점수 결과 보기 ▶' : '새 게임';
+  show('champion');
+}
+
+/** 동점이면 같은 등수 (1, 1, 3 …) */
+function ranked() {
+  const rows = [...totals().values()].sort((a, b) => b.score - a.score || b.answers - a.answers || a.no - b.no);
+  rows.forEach((r, i) => {
+    const prev = rows[i - 1];
+    r.rank = prev && prev.score === r.score ? prev.rank : i + 1;
+  });
+  return rows;
+}
+
+function renderResults(fromGame) {
+  const rows = ranked();
+  const rankOf = rankClass(totals());
+  const champ = S.champion !== null ? FOODS[S.champion] : null;
+  $('#resSub').textContent = `${className()} · ${S.size}강 · ${S.log.length}번 대답`
+    + (champ ? ` · 1등 메뉴: ${champ.ko}` : ' · 게임 진행 중');
+  const pod = (rank, cls) => {
+    const list = rows.filter(r => r.rank === rank && r.score > 0);
+    if (!list.length) return '<div></div>'; // 동점으로 건너뛴 등수는 비워 둠
+    return `<div class="pod ${cls}"><div class="rank">${rank}등</div>
+      <div class="who">${list.map(r => `${r.no}번`).join(', ')}</div><div class="val">${list[0].score}점</div></div>`;
+  };
+  $('#podium').innerHTML = pod(2, '') + pod(1, 'first') + pod(3, '');
+  const maxA = Math.max(0, ...rows.map(r => r.answers));
+  $('#most').textContent = maxA
+    ? `가장 많이 대답한 번호: ${rows.filter(r => r.answers === maxA).sort((a, b) => a.no - b.no).map(r => `${r.no}번`).join(', ')} (${maxA}번)`
+    : '아직 점수를 받은 번호가 없어요.';
+  $('#scoreRows').innerHTML = rows.map(r => `<tr class="${r.score ? rankOf(r.score) : 'zero'}">
+    <td>${r.score ? r.rank : '-'}</td><td>${r.no}번</td><td>${r.score}점</td><td>${r.answers}번</td><td>${r.reasons}번</td></tr>`).join('');
+  $('#backGame').hidden = !fromGame;
+  show('results');
+}
+$('#toResults').addEventListener('click', () => { if (S.numbers.length) renderResults(false); else resetGame(); });
+$('#endBtn').addEventListener('click', () => { if (!busy) renderResults(true); });
+$('#backGame').addEventListener('click', renderMatch);
+
+$('#newGame').addEventListener('click', () => {
+  if (S && S.champion === null && !confirm('진행 중인 게임을 끝내고 새 게임을 만들까요?')) return;
+  resetGame();
+});
+function resetGame() {
+  S = null;
+  history = [];
+  clearSave();
+  $('#resumeBtn').hidden = true;
+  show('setup');
+}
+
+/* 시작 화면 */
+function bindOpts(box, key) {
+  $$(box + ' .opt').forEach(b => b.addEventListener('click', () => {
+    setup[key] = b.dataset.v;
+    $$(box + ' .opt').forEach(x => x.classList.toggle('on', x === b));
+    $('#startBtn').disabled = !(setup.cls && setup.size);
+  }));
+}
+bindOpts('#classOpts', 'cls');
+bindOpts('#sizeOpts', 'size');
+
+$('#startBtn').addEventListener('click', () => {
+  S = newGame();
+  history = [];
+  save();
+  renderIntro();
+});
+$('#resumeBtn').addEventListener('click', () => {
+  S = load();
+  history = [];
+  if (S.champion !== null) renderChampion();
+  else renderMatch();
+});
+
+/* 키보드: ← → 로 메뉴 고르기 */
+document.addEventListener('keydown', e => {
+  if ($('#match').hidden) return;
+  if (e.key === 'ArrowLeft') choose(0);
+  if (e.key === 'ArrowRight') choose(1);
+});
+
+const saved = load();
+if (saved) $('#resumeBtn').hidden = false;
+</script>
+</body>
+</html>
